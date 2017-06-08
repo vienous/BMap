@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>所有POI的查询-地址解析</title>
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=1.2"></script>
+<style type="text/css">
+    .sss{
+        text-align: center;
+    }
+    .style{text-align: center; margin-top: 10px;}
+    .style>div{margin: 10px; width: 40px;}
+</style>
+</head>
+<body>
+<div style="width:600px;height:400px;border:1px solid gray;float:left;" id="container"></div>
+<div style="width:300px;height:400px;border:1px solid gray;border-left:0;float:left;" >
+    <div style="width: 100%;height: 30px" class="style">
+        <div class="sss" style="width: 75px;display:inline"><a href="javascript:change('公交');">交通</a></div>
+        <div class="sss" style="width: 75px;display:inline"><a href="javascript:change('餐饮');">商业</a></div>
+        <div class="sss" style="width: 75px;display:inline"><a href="javascript:change('教育');">教育</a></div>
+        <div class="sss" style="width: 75px;display:inline"><a href="javascript:change('医院');">医疗</a></div>
+    </div>
+    <div style="width: 100%" id="results"></div>
+</div>
+</body>
+</html>
+<script type="text/javascript">
+ 
+
+
+
+
+var map = new BMap.Map("container");
+var mPoint = new BMap.Point(115.95787076704, 39.686882148892);
+map.centerAndZoom(mPoint, 16);
+map.enableScrollWheelZoom();        //启用滚轮缩放
+
+map.addOverlay(new BMap.Marker(mPoint));
+
+//serachOtions
+var options={
+    renderOptions:{
+        //map: map,
+        selectFirstResult:false,
+        //panel:'results' 渲染的div的id
+        autoViewport:true
+    },
+    //pageCapacity:100,
+    onSearchComplete: function(results){      
+        if (local.getStatus() == BMAP_STATUS_SUCCESS){      
+                // 判断状态是否正确      
+            var s = []; 
+            for(var j=0;j<results.length;j++){
+                for (var i = 0; i < results[j].getCurrentNumPois(); i ++){  
+                    var str =results[j].getPoi(i).point.lat+","+results[j].getPoi(i).point.lng+","+results[j].getPoi(i).title+","+results[j].getPoi(i).address;
+                    
+                    s.push("<span onclick=\"Click('"+str+"')\"; onmouseover=\"Click('"+str+"')\";>"+results[j].getPoi(i).title + "： " + results[j].getPoi(i).address+"  "+parseInt(map.getDistance(mPoint, results[j].getPoi(i).point))+"米"+"</span>"); 
+                    var pic = ""
+                    if(results[j].keyword=="公交"){
+                        pic="bus.png";
+                    }else if(results[j].keyword=="医院"){
+                        pic="hospital.png";
+                    }else if(results[j].keyword=="教育"){
+                        pic="school.png";
+                    }else{
+                        pic="restaurant.png";
+                    }
+                    addMarker(results[j].getPoi(i).point,pic,0,results[j].getPoi(i));   
+                    //map.addOverlay(new BMap.Marker(results.getPoi(i).point));  
+                }
+            }                     
+            document.getElementById("results").innerHTML = s.join("<br>");      
+        }      
+    } 
+}
+var local = new BMap.LocalSearch(map,options);  
+var initParams = ['公交'];    
+local.searchNearby(initParams,mPoint,1500);
+
+
+function change(data){
+    var params = data.split(',');
+    console.log(params);
+    var list = map.getOverlays()
+    for(var i=0;i<list.length;i++){       
+            map.removeOverlay(list[i]);       
+    }
+    local.searchNearby(params,mPoint,1500);
+    map.addOverlay(new BMap.Marker(mPoint));    
+}
+function remove(cb){
+    var list = map.getOverlays()
+    for(var i=0;i<list.length;i++){       
+            map.removeOverlay(list[i]);       
+    }
+    cb();
+}
+var markerList=[];
+function addMarker(point, pic,index,data){  // 创建图标对象   
+    var myIcon = new BMap.Icon(pic, new BMap.Size(100, 100), {    
+    // 指定定位位置。   
+    // 当标注显示在地图上时，其所指向的地理位置距离图标左上    
+    // 角各偏移10像素和25像素。您可以看到在本例中该位置即是   
+       // 图标中央下端的尖角位置。    
+       offset: new BMap.Size(0, 0),    
+       // 设置图片偏移。   
+       // 当您需要从一幅较大的图片中截取某部分作为标注图标时，您   
+       // 需要指定大图的偏移位置，此做法与css sprites技术类似。    
+       imageOffset: new BMap.Size(0, 0 - index * 25)   // 设置图片偏移    
+    });      
+    // 创建标注对象并添加到地图   
+    var marker = new BMap.Marker(point, {icon: myIcon,title:data.title});  
+
+    marker.addEventListener("click", function(res){
+        //data是地图上标注的信息
+        //console.log(res);
+        //console.log(data);
+        //Click(data);
+        marker.openInfoWindow(new BMap.InfoWindow(data.address,{
+            title:data.title,
+            width:300,
+            height:120,
+            enableAutoPan:true,
+            offset:new BMap.Size(-30,-45)
+        }));
+    });
+    markerList.push(marker);
+    map.addOverlay(marker);    
+}    
+function Click(temp){
+    var data={
+        point:{
+            lat:temp.split(",")[0],
+            lng:temp.split(",")[1]
+        },
+        title:temp.split(",")[2],
+        address:temp.split(",")[3]
+    }
+    for(var i=0;i<markerList.length;i++){
+        var p = markerList[i].getPosition();
+        if(p.lng==data.point.lng&&p.lat==data.point.lat){
+            markerList[i].openInfoWindow(new BMap.InfoWindow(data.address,{
+            title:data.title,
+            width:300,
+            height:120,
+            enableAutoPan:true,
+            offset:new BMap.Size(-30,-45)
+            }));
+        }
+
+    }
+    
+}
+</script>
