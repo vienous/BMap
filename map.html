@@ -32,7 +32,18 @@
     map.centerAndZoom(mPoint, 16); //地图中心
     map.enableScrollWheelZoom();  //启用滚轮缩放
 
-    map.addOverlay(new BMap.Marker(mPoint));//添加中心点在地图中的显示
+    var LabelOptions = {
+        offset:new BMap.Size(0,-18),
+        position:mPoint,
+        enableMassClear:false//调用map.clearOverlays是否清楚，默认ture
+    }
+    var label = new BMap.Label("房源",LabelOptions);//第一个参数为label显示内容
+    label.setStyle({ color : "red", fontSize : "12px" });
+    //label.setContent("nihao");
+    label.setTitle("大搜家");//鼠标移到label后显示内容
+    FMarker = new BMap.Marker(mPoint,{enableMassClear:false});//调用map.clearOverlays是否清楚，默认ture
+    FMarker.setLabel(label);
+    map.addOverlay(FMarker);//添加中心点在地图中的显示
     //serachOtions，搜索选项
     var options={
         renderOptions:{
@@ -79,12 +90,12 @@
     function change(data){
         var params = data.split(',');
         console.log(params);
-        var list = map.getOverlays()
-        for(var i=0;i<list.length;i++){       
-                map.removeOverlay(list[i]);       
-        }
-        local.searchNearby(params,mPoint,1500);
-        map.addOverlay(new BMap.Marker(mPoint));    
+        // var list = map.getOverlays()   //清除单个
+        // for(var i=0;i<list.length;i++){       
+        //         map.removeOverlay(list[i]);       
+        // }
+        map.clearOverlays();//清除所有
+        local.searchNearby(params,mPoint,1500);   
     }
     var markerList=[];
     //自定义标注
